@@ -13,10 +13,10 @@ class Game(arcade.Window):
         arcade.set_background_color(arcade.color.BLACK)
 
         # Камера
-        self.world_camera = arcade.camera.Camera2D()  # Камера для игрового мира
+        self.world_camera = arcade.camera.Camera2D()
 
         # Размеры мира
-        self.world_width = 1250
+        self.world_width = 1500
         self.world_height = 10000
 
     def setup(self):
@@ -24,7 +24,7 @@ class Game(arcade.Window):
         self.player = Player()
 
         # Карта
-        self.tile_map = arcade.load_tilemap("Tile Maps/test_location.json", scaling=SCALING)  # Во встроенных ресурсах есть даже уровни!
+        self.tile_map = arcade.load_tilemap("Tile Maps/test_location.json", scaling=SCALING)
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
         # Задача/Сброс переменных
@@ -42,6 +42,7 @@ class Game(arcade.Window):
             platforms=self.scene["Platforms"],
         )
 
+        # Текстура игрока
         self.player_texture = arcade.Sprite("Sprites/placeholder player texture.jpeg")
         self.player_texture.center_x = self.player.center_x
         self.player_texture.center_y = self.player.center_y
@@ -49,8 +50,19 @@ class Game(arcade.Window):
         self.player_spritelist = arcade.SpriteList()
         self.player_spritelist.append(self.player_texture)
 
+        # Фон
+        self.bg = arcade.Sprite("Sprites/background placeholder.jpg", scale=1.5)
+        self.bg.center_x = 512
+        self.bg.center_y = 512
+        self.bg_spritelist = arcade.SpriteList()
+        self.bg_spritelist.append(self.bg)
+
+        self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
+
     def on_draw(self):
         self.clear()
+
+        self.bg_spritelist.draw()
 
         self.world_camera.use()
         self.player_spritelist.draw()
@@ -86,6 +98,14 @@ class Game(arcade.Window):
         self.cam_target = (smooth_x, smooth_y)
 
         self.world_camera.position = (self.cam_target[0], self.cam_target[1])
+
+        # Параллакс
+        self.new_cam_pos_x, self.new_cam_pos_y = self.world_camera.position
+        if self.old_cam_pos_x != self.new_cam_pos_x:
+            self.bg.center_x += (self.new_cam_pos_x - self.old_cam_pos_x) * PARALLAX_SPEED
+        if self.old_cam_pos_y != self.new_cam_pos_y:
+            self.bg.center_y += (self.new_cam_pos_y - self.old_cam_pos_y) * PARALLAX_SPEED
+        self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
 
         # Движение влево-вправо
         self.player.movement = 0

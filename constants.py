@@ -16,11 +16,13 @@ PLAYER_START_Y = 100
 
 GRAVITY = 1.8     # Пикс/с^2
 
-MOVE_SPEED = 10     # Пикс/с
+MOVE_SPEED = 9.4     # Пикс/с
 
 JUMP_SPEED = 26.5     # Начальный импульс прыжка
 
 LADDER_SPEED = 12.5     # Скрость лазание по лестницам
+
+PARALLAX_SPEED = 0.4     # Скорость параллакса
 
 
 # Камера
