@@ -8,15 +8,17 @@ from player import Player
 
 
 class Game(arcade.Window):
-    def __init__(self, width, height, title):
-        super().__init__(width, height, title)
+    #def __init__(self, width, height, title):
+    def __init__(self):
+        super().__init__(fullscreen=FULLSCREEN)
         arcade.set_background_color(arcade.color.BLACK)
 
         # Камера
         self.world_camera = arcade.camera.Camera2D()
+        self.set_caption(GAME_NAME)
 
         # Размеры мира
-        self.world_width = 1500
+        self.world_width = 10000
         self.world_height = 10000
 
     def setup(self):
@@ -24,7 +26,7 @@ class Game(arcade.Window):
         self.player = Player()
 
         # Карта
-        self.tile_map = arcade.load_tilemap("Tile Maps/test_location.json", scaling=SCALING)
+        self.tile_map = arcade.load_tilemap("Tile Maps/test_location_2.json", scaling=2)
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
         # Задача/Сброс переменных
@@ -35,6 +37,8 @@ class Game(arcade.Window):
 
         self.keys = []
 
+        self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
+
         # Физика
         self.engine = arcade.PhysicsEnginePlatformer(
             player_sprite=self.player,
@@ -43,7 +47,7 @@ class Game(arcade.Window):
         )
 
         # Текстура игрока
-        self.player_texture = arcade.Sprite("Sprites/placeholder player texture.jpeg")
+        self.player_texture = arcade.Sprite("Sprites/placeholder player texture.jpeg", scale=1.35)
         self.player_texture.center_x = self.player.center_x
         self.player_texture.center_y = self.player.center_y
 
@@ -52,12 +56,10 @@ class Game(arcade.Window):
 
         # Фон
         self.bg = arcade.Sprite("Sprites/background placeholder.jpg", scale=1.5)
-        self.bg.center_x = 512
-        self.bg.center_y = 512
+        self.bg.center_x = 768
+        self.bg.center_y = 768
         self.bg_spritelist = arcade.SpriteList()
         self.bg_spritelist.append(self.bg)
-
-        self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
 
     def on_draw(self):
         self.clear()
@@ -139,6 +141,19 @@ class Game(arcade.Window):
                 self.engine.jump(JUMP_SPEED)
                 self.jump_buffer_timer = 0
 
+        # Рывок
+        if (arcade.MOUSE_BUTTON_RIGHT in self.keys or self.player.DASHING) and self.player.dash_reset_timer > (DASH_RESET_TIME):
+            self.engine.jump(0)
+            self.player.DASHING = True
+            self.engine.gravity_constant = 0
+            if self.player.dash_timer < DASH_TIME:
+                self.player.dash(dt)
+            else:
+                self.engine.gravity_constant = GRAVITY
+                self.player.dash_timer = 0
+                self.player.dash_reset_timer = 0
+                self.player.DASHING = False
+
         # Физика лестниц
         on_ladder = self.engine.is_on_ladder()
         if on_ladder:
@@ -157,6 +172,13 @@ class Game(arcade.Window):
         # Коллизия с опасностями
         hit_list = arcade.check_for_collision_with_list(self.player, self.scene["Dangers"])
         if hit_list:
+            # Ресет рывка
+            self.engine.gravity_constant = GRAVITY
+            self.player.dash_timer = 0
+            self.player.dash_reset_timer = 0
+            self.player.DASHING = False
+
+            # Ресет позиции
             self.player.center_x = 100
             self.player.center_y = 100
 
@@ -189,14 +211,14 @@ class Game(arcade.Window):
         self.keys.remove(button)
 
 
-def setup_game(width=WIDTH, height=HEIGHT, title=TITLE):
-    game = Game(width, height, title)
+def setup_game():
+    game = Game()
     game.setup()
     return game
 
 
 def main():
-    setup_game(WIDTH, HEIGHT, TITLE)
+    setup_game()
     arcade.run()
 
 
