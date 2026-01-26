@@ -1,12 +1,11 @@
-FULLSCREEN = True
-
 GAME_NAME = "йоу"     # Название игры
 
+FULLSCREEN = True
 
 # Начальные координаты
 
-PLAYER_START_X = 100
-PLAYER_START_Y = 100
+PLAYER_START_X = 256
+PLAYER_START_Y = 256
 
 
 # Скорость
@@ -19,7 +18,7 @@ JUMP_SPEED = 26.5     # Начальный импульс прыжка
 
 LADDER_SPEED = 12.5     # Скрость лазание по лестницам
 
-PARALLAX_SPEED = 0.65     # Скорость параллакса
+PARALLAX_SPEED = 0.85     # Скорость параллакса
 
 DASH_SPEED = 25.5
 DASH_TIME = 9 / 60
@@ -41,5 +40,3 @@ COYOTE_TIME = 0.08     # Сколько после схода с платфор�
 JUMP_BUFFER = 0.02     # Баффер прыжка
 
 MAX_JUMPS = 1     # Кол-во прыжков за раз
-
-TITLE = "йоу"

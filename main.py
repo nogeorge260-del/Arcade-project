@@ -18,7 +18,7 @@ class Game(arcade.Window):
         self.set_caption(GAME_NAME)
 
         # Размеры мира
-        self.world_width = 10000
+        self.world_width = 5184
         self.world_height = 10000
 
     def setup(self):
@@ -26,24 +26,25 @@ class Game(arcade.Window):
         self.player = Player()
 
         # Карта
-        self.tile_map = arcade.load_tilemap("Tile Maps/test_location_2.json", scaling=2)
+        self.tile_map = arcade.load_tilemap("Tile Maps/game_map.json", scaling=2, use_spatial_hash=True)
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
 
         # Задача/Сброс переменных
         self.jump_pressed = False
+        self.can_double_jump = False
         self.jump_buffer_timer = 0.0
         self.time_since_ground = 999.0
         self.jumps_left = MAX_JUMPS
-
         self.keys = []
-
         self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
+        self.door_counter = 0
+        self.last_checkpoint = [256, 256]
 
         # Физика
         self.engine = arcade.PhysicsEnginePlatformer(
             player_sprite=self.player,
             gravity_constant=GRAVITY,
-            platforms=self.scene["Platforms"],
+            platforms=(self.scene["Platforms"], self.scene["Doors 1"]),
         )
 
         # Текстура игрока
@@ -56,7 +57,7 @@ class Game(arcade.Window):
 
         # Фон
         self.bg = arcade.Sprite("Sprites/background placeholder.jpg", scale=1.5)
-        self.bg.center_x = 768
+        self.bg.center_x = 1024
         self.bg.center_y = 768
         self.bg_spritelist = arcade.SpriteList()
         self.bg_spritelist.append(self.bg)
@@ -71,6 +72,14 @@ class Game(arcade.Window):
         self.scene.draw()
 
     def on_update(self, dt: float):
+        # Закрытие двери
+        if self.door_counter <= 0.5:
+            self.scene["Doors 1"].move(0, -384 * dt)
+            self.door_counter += dt
+        if self.player.center_x > 3560 and self.door_counter <= 1:
+            self.scene["Doors 1"].move(0, -384 * dt)
+            self.door_counter += dt
+
         # Обновления камеры
         cam_x, cam_y = self.world_camera.position
         dz_left = cam_x - DEAD_ZONE_W // 2
@@ -109,6 +118,25 @@ class Game(arcade.Window):
             self.bg.center_y += (self.new_cam_pos_y - self.old_cam_pos_y) * PARALLAX_SPEED
         self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
 
+        # Коллизия с опасностями
+        hit_list = arcade.check_for_collision_with_list(self.player, self.scene["Dangers"])
+        if hit_list:
+            # Ресет рывка
+            self.engine.gravity_constant = GRAVITY
+            self.player.dash_timer = 0
+            self.player.dash_reset_timer = 0
+            self.player.DASHING = False
+
+            # Ресет позиции
+            self.player.center_x = self.last_checkpoint[0]
+            self.player.center_y = self.last_checkpoint[1]
+
+            # Коллизия с чекпоинтами
+            hit_list = arcade.check_for_collision_with_list(self.player, self.scene["Checkpoints"])
+            if hit_list:
+                self.last_checkpoint = [self.player.center_x, self.player.center_y]
+                print(1)
+
         # Движение влево-вправо
         self.player.movement = 0
 
@@ -137,7 +165,7 @@ class Game(arcade.Window):
 
         if want_jump:
             can_coyote = (self.time_since_ground <= COYOTE_TIME)
-            if grounded or can_coyote:
+            if grounded or can_coyote or self.can_double_jump:
                 self.engine.jump(JUMP_SPEED)
                 self.jump_buffer_timer = 0
 
@@ -153,34 +181,6 @@ class Game(arcade.Window):
                 self.player.dash_timer = 0
                 self.player.dash_reset_timer = 0
                 self.player.DASHING = False
-
-        # Физика лестниц
-        on_ladder = self.engine.is_on_ladder()
-        if on_ladder:
-            # По лестнице вверх/вниз
-            if arcade.key.W in self.keys and arcade.key.S not in self.keys:
-                self.player.change_y = LADDER_SPEED
-            elif arcade.key.W not in self.keys and arcade.key.S in self.keys:
-                self.player.change_y = -LADDER_SPEED
-            else:
-                self.player.change_y = 0
-            # Обновление текстуры игрока
-            self.player_texture.center_x = self.player.center_x
-            self.player_texture.center_y = self.player.center_y
-
-
-        # Коллизия с опасностями
-        hit_list = arcade.check_for_collision_with_list(self.player, self.scene["Dangers"])
-        if hit_list:
-            # Ресет рывка
-            self.engine.gravity_constant = GRAVITY
-            self.player.dash_timer = 0
-            self.player.dash_reset_timer = 0
-            self.player.DASHING = False
-
-            # Ресет позиции
-            self.player.center_x = 100
-            self.player.center_y = 100
 
         # Обновление физики
         self.engine.update()
