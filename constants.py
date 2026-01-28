@@ -1,11 +1,11 @@
-GAME_NAME = "йоу"     # Название игры
+GAME_NAME = "yeah"     # Название игры
 
 FULLSCREEN = True
 
 # Начальные координаты
 
-PLAYER_START_X = 256
-PLAYER_START_Y = 256
+PLAYER_START_X = 288
+PLAYER_START_Y = 512
 
 
 # Скорость
@@ -20,7 +20,7 @@ LADDER_SPEED = 12.5     # Скрость лазание по лестницам
 
 PARALLAX_SPEED = 0.85     # Скорость параллакса
 
-DASH_SPEED = 25.5
+DASH_SPEED = 36.9
 DASH_TIME = 9 / 60
 DASH_RESET_TIME = 20 / 60
 

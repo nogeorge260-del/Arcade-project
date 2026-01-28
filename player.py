@@ -27,6 +27,7 @@ class Player(arcade.Sprite):
         self.dash_reset_timer = 0
 
         self.DASHING = False
+        self.can_dash = False
 
 
     def update(self, dt: float):
@@ -42,9 +43,10 @@ class Player(arcade.Sprite):
             self.dash_reset_timer += dt
 
     def dash(self, dt: float):
-        self.dash_timer += dt
+        if self.can_dash:
+            self.dash_timer += dt
 
-        if self.direction == 'right':
-            self.center_x += DASH_SPEED
-        elif self.direction == 'left':
-            self.center_x -= DASH_SPEED
+            if self.direction == 'right':
+                self.center_x += DASH_SPEED
+            elif self.direction == 'left':
+                self.center_x -= DASH_SPEED
