@@ -1,4 +1,4 @@
-GAME_NAME = "yeah"     # Название игры
+GAME_NAME = "Cat-O-Head"     # Название игры
 
 FULLSCREEN = True
 
@@ -18,7 +18,7 @@ JUMP_SPEED = 26.5     # Начальный импульс прыжка
 
 LADDER_SPEED = 12.5     # Скрость лазание по лестницам
 
-PARALLAX_SPEED = 0.85     # Скорость параллакса
+PARALLAX_SPEED = 0.7     # Скорость параллакса
 
 DASH_SPEED = 36.9
 DASH_TIME = 9 / 60

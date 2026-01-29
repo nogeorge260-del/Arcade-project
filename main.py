@@ -37,6 +37,9 @@ class Game(arcade.Window):
         self.tile_map3 = arcade.load_tilemap("Tile Maps/location2.json", scaling=2, use_spatial_hash=True)
         self.location2 = arcade.Scene.from_tilemap(self.tile_map3)
 
+        self.tile_map4 = arcade.load_tilemap("Tile Maps/final.json", scaling=2, use_spatial_hash=True)
+        self.final = arcade.Scene.from_tilemap(self.tile_map4)
+
         # Задача/Сброс переменных
         self.started = False
         self.starting = False
@@ -61,6 +64,7 @@ class Game(arcade.Window):
         self.respawning = False
         self.switching1 = False
         self.switching2 = False
+        self.switching3 = False
         self.switch_timer = 0
         self.not_switching = False
         self.amount = 0
@@ -69,10 +73,13 @@ class Game(arcade.Window):
         self.keys3 = False
         self.keys4 = False
         self.uselessc2 = True
+        self.win = False
 
         # SFX
         self.fall = arcade.load_sound('SFX/fall.mp3')
         self.dash = arcade.load_sound('SFX/dash.mp3')
+        self.key = arcade.load_sound('SFX/key_picked_up.mp3')
+        self.door = arcade.load_sound('SFX/door.mp3')
         self.background_song = arcade.load_sound('SFX/Songs/these streets once brimmed with life.mp3')
 
         # Физика
@@ -83,15 +90,22 @@ class Game(arcade.Window):
         )
 
         # Текстура игрока
-        self.player_texture = arcade.Sprite("Sprites/placeholder player texture.jpeg", scale=1.35)
+        self.player_texture = arcade.Sprite("Sprites/sprites/cat-o-head.png", scale=3.25)
         self.player_texture.center_x = self.player.center_x
         self.player_texture.center_y = self.player.center_y
 
         self.player_spritelist = arcade.SpriteList()
         self.player_spritelist.append(self.player_texture)
 
+        # Hello Kitty
+        self.kitty = arcade.Sprite("Sprites/sprites/final_hero.png", scale=.5)
+        self.kitty.center_x = 2688
+        self.kitty.center_y = 256
+        self.kitty_spritelist = arcade.SpriteList()
+        self.kitty_spritelist.append(self.kitty)
+
         # Фон
-        self.bg = arcade.Sprite("Sprites/background placeholder.jpg", scale=1.5)
+        self.bg = arcade.Sprite("Sprites/background placeholder.jpg", scale=2)
         self.bg.center_x = 1024
         self.bg.center_y = 768
         self.bg_spritelist = arcade.SpriteList()
@@ -146,14 +160,26 @@ class Game(arcade.Window):
             if not self.respawning:
                 self.player_spritelist.draw()
             if self.map == 0:
-                self.tutorial.draw()
+                self.tutorial["Deco"].draw()
             elif self.map == 1:
-                self.location1.draw()
+                self.location1["Deco"].draw()
             elif self.map == 2:
-                self.location2.draw()
+                self.location2["Deco"].draw()
+                self.location2["decodoor"].draw()
                 cx, cy = self.world_camera.position
-                arcade.Text(f'Собрано ключей: {self.amount}/4', x=cx - 1000, y=cy + 500, font_size=40,
+                arcade.Text(f'Собрано ключей: {self.amount}/4', x=cx - 900, y=cy + 450, font_size=40,
                             color=arcade.color.WHITE, anchor_x='left').draw()
+                if not self.keys1:
+                    self.location2["keydeco1"].draw()
+                if not self.keys2:
+                    self.location2["keydeco2"].draw()
+                if not self.keys3:
+                    self.location2["keydeco3"].draw()
+                if not self.keys4:
+                    self.location2["keydeco4"].draw()
+            elif self.map == 3:
+                self.final["Deco"].draw()
+                self.kitty_spritelist.draw()
 
         else:
             self.manager.draw()
@@ -174,6 +200,11 @@ class Game(arcade.Window):
             cx, cy = self.world_camera.position
             arcade.Text('Нажмите "ПКМ" для рывка', x=cx-800, y=cy-500, font_size=50,
                         color=arcade.color.WHITE, anchor_x='left').draw()
+
+        if self.win:
+            cx, cy = self.world_camera.position
+            arcade.Text('Вы выиграли! Вы спасли Hello Kitty!', x=cx, y=cy, font_size=75,
+                        color=arcade.color.WHITE, anchor_x='center').draw()
 
 
     def on_update(self, dt: float):
@@ -256,6 +287,34 @@ class Game(arcade.Window):
                 if self.switch_timer >= 2:
                     self.switch_timer = 0
                     self.switching2 = False
+                    self.player.can_move = True
+                    self.not_switching = False
+
+            # Смена 2 локации на final
+            if (self.player.center_y >= 3328 and self.map == 2) or self.switching3:
+                self.player.can_move = False
+                self.switching3 = True
+                self.switch_timer += dt
+                if self.switch_timer >= 1 and not self.not_switching:
+                    self.map = 3
+                    self.location2["Platforms"].move(0, -10000)
+                    self.location2["Dangers"].move(0, -10000)
+                    self.location2["Checkpoints"].move(0, -10000)
+                    self.location2["Doors"].move(0, -10000)
+                    self.engine.platforms = self.final["Platforms"]
+                    self.player.center_x = 896
+                    self.player.center_y = 384
+                    self.last_checkpoint = [896, 384]
+                    self.world_width = 10000
+                    self.world_height = 10000
+
+                    self.player.can_move = True
+                    self.switch_timer += dt
+                    self.not_switching = True
+
+                if self.switch_timer >= 2:
+                    self.switch_timer = 0
+                    self.switching3 = False
                     self.player.can_move = True
                     self.not_switching = False
 
@@ -388,20 +447,30 @@ class Game(arcade.Window):
                 # Собранные ключи
                 hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Keys1"])
                 if hit_list and not self.keys1:
+                    arcade.play_sound(self.key, volume=.5, speed=1.)
                     self.amount += 1
                     self.keys1 = True
                 hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Keys2"])
                 if hit_list and not self.keys2:
+                    arcade.play_sound(self.key, volume=.5, speed=1.)
                     self.amount += 1
                     self.keys2 = True
                 hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Keys3"])
                 if hit_list and not self.keys3:
+                    arcade.play_sound(self.key, volume=.5, speed=1.)
                     self.amount += 1
                     self.keys3 = True
                 hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Keys4"])
                 if hit_list and not self.keys4:
+                    arcade.play_sound(self.key, volume=.5, speed=1.)
                     self.amount += 1
                     self.keys4 = True
+
+            if self.map == 3:
+                hit_list = arcade.check_for_collision_with_list(self.player, self.final["Win"])
+                if hit_list:
+                    self.win = True
+                    self.player.can_move = False
 
             # Движение влево-вправо
             self.player.movement = 0
@@ -464,6 +533,8 @@ class Game(arcade.Window):
             if self.keys1 and self.keys2 and self.keys3 and self.keys4 and self.uselessc2:
                 self.uselessc2 = False
                 self.location2["Doors"].move(320, 0)
+                self.location2["decodoor"].move(320, 0)
+                arcade.play_sound(self.door, volume=.5, speed=1.)
 
             # Обновление физики
             self.engine.update()
