@@ -10,7 +10,7 @@ PLAYER_START_Y = 512
 
 # Скорость
 
-GRAVITY = 1.8     # Пикс/с^2
+GRAVITY = 1.75     # Пикс/с^2
 
 MOVE_SPEED = 11.4     # Пикс/с
 

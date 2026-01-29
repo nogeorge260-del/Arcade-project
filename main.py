@@ -1,4 +1,5 @@
 import arcade
+from arcade.gl import RGBA_INTEGER
 from arcade.gui import UIManager, UIFlatButton, UILabel
 from arcade.gui.widgets.layout import UIAnchorLayout, UIBoxLayout
 
@@ -55,8 +56,24 @@ class Game(arcade.Window):
         self.map = 0
         self.jump_help = False
         self.dash_help = False
-        self.do_switch1 = False
-        self.do_switch2 = False
+        self.old_grounded = True
+        self.respawn_timer = 0
+        self.respawning = False
+        self.switching1 = False
+        self.switching2 = False
+        self.switch_timer = 0
+        self.not_switching = False
+        self.amount = 0
+        self.keys1 = False
+        self.keys2 = False
+        self.keys3 = False
+        self.keys4 = False
+        self.uselessc2 = True
+
+        # SFX
+        self.fall = arcade.load_sound('SFX/fall.mp3')
+        self.dash = arcade.load_sound('SFX/dash.mp3')
+        self.background_song = arcade.load_sound('SFX/Songs/these streets once brimmed with life.mp3')
 
         # Физика
         self.engine = arcade.PhysicsEnginePlatformer(
@@ -95,6 +112,7 @@ class Game(arcade.Window):
     def start_game(self):
         self.starting = True
         self.started = True
+        self.bg_music = self.background_song.play(loop=True, volume=.33)
 
     def setup_widgets(self):
         # Виджеты
@@ -125,14 +143,28 @@ class Game(arcade.Window):
             self.bg_spritelist.draw()
 
             self.world_camera.use()
-            self.player_spritelist.draw()
+            if not self.respawning:
+                self.player_spritelist.draw()
             if self.map == 0:
                 self.tutorial.draw()
             elif self.map == 1:
                 self.location1.draw()
+            elif self.map == 2:
+                self.location2.draw()
+                cx, cy = self.world_camera.position
+                arcade.Text(f'Собрано ключей: {self.amount}/4', x=cx - 1000, y=cy + 500, font_size=40,
+                            color=arcade.color.WHITE, anchor_x='left').draw()
 
         else:
             self.manager.draw()
+
+        if (self.switching1 or self.switching2) and not self.not_switching:
+            draw_x, draw_y = self.world_camera.position
+            arcade.draw_circle_filled(draw_x, draw_y, 2000, (0, 0, 0, 255 * self.switch_timer))
+        elif self.not_switching:
+            draw_x, draw_y = self.world_camera.position
+            if 2 - self.switch_timer > 0 and self.switch_timer != 0:
+                arcade.draw_circle_filled(draw_x, draw_y, 2000, (0, 0, 0, 255 * (2 - self.switch_timer)))
 
         if self.jump_help:
             cx, cy = self.world_camera.position
@@ -142,7 +174,6 @@ class Game(arcade.Window):
             cx, cy = self.world_camera.position
             arcade.Text('Нажмите "ПКМ" для рывка', x=cx-800, y=cy-500, font_size=50,
                         color=arcade.color.WHITE, anchor_x='left').draw()
-            print(1)
 
 
     def on_update(self, dt: float):
@@ -172,84 +203,122 @@ class Game(arcade.Window):
                     self.advancement_counter += 1
 
             # Смена туториала на 1 локацию
-            if (self.player.center_x >= 3712 and self.map == 0) or self.do_switch1:
-                self.map = 1
-                self.tutorial["Platforms"].move(0, -10000)
-                self.tutorial["Dangers"].move(0, -10000)
-                self.tutorial["Checkpoints"].move(0, -10000)
-                self.tutorial["Doors 1"].move(0, -10000)
-                self.engine.platforms = (self.location1["Platforms"], self.location1["Doors"])
-                self.player.center_x = 288
-                self.player.center_y = 384
-                self.last_checkpoint = [288, 384]
-                self.world_width = 3840
-                self.world_height = 3200
-
-                # Смена 1 локации на 2
-                if (self.player.center_y >= 3100 and self.map == 1) or self.do_switch2:
-                    self.map = 2
-                    self.location1["Platforms"].move(0, -10000)
-                    self.location1["Dangers"].move(0, -10000)
-                    self.location1["Checkpoints"].move(0, -10000)
-                    self.location1["Doors 1"].move(0, -10000)
-                    self.engine.platforms = (self.location2["Platforms"], self.location2["Doors"])
+            if (self.player.center_x >= 3712 and self.map == 0) or self.switching1:
+                self.player.can_move = False
+                self.switching1 = True
+                self.switch_timer += dt
+                if self.switch_timer >= 1 and not self.not_switching:
+                    self.map = 1
+                    self.tutorial["Platforms"].move(0, -10000)
+                    self.tutorial["Dangers"].move(0, -10000)
+                    self.tutorial["Checkpoints"].move(0, -10000)
+                    self.tutorial["Doors 1"].move(0, -10000)
+                    self.engine.platforms = (self.location1["Platforms"], self.location1["Doors"])
                     self.player.center_x = 288
                     self.player.center_y = 384
                     self.last_checkpoint = [288, 384]
                     self.world_width = 3840
                     self.world_height = 3200
 
+                    self.player.can_move = True
+                    self.switch_timer += dt
+                    self.not_switching = True
+
+                if self.switch_timer >= 2:
+                    self.switch_timer = 0
+                    self.switching1 = False
+                    self.player.can_move = True
+                    self.not_switching = False
+
+
+            # Смена 1 локации на 2
+            if (self.player.center_y >= 3136 and self.map == 1) or self.switching2:
+                self.player.can_move = False
+                self.switching2 = True
+                self.switch_timer += dt
+                if self.switch_timer >= 1 and not self.not_switching:
+                    self.map = 2
+                    self.location1["Platforms"].move(0, -10000)
+                    self.location1["Dangers"].move(0, -10000)
+                    self.location1["Checkpoints"].move(0, -10000)
+                    self.location1["Doors"].move(0, -10000)
+                    self.engine.platforms = (self.location2["Platforms"], self.location2["Doors"])
+                    self.player.center_x = 1216
+                    self.player.center_y = 384
+                    self.last_checkpoint = [1216, 384]
+                    self.world_width = 4864
+                    self.world_height = 3328
+
+                    self.player.can_move = True
+                    self.switch_timer += dt
+                    self.not_switching = True
+
+                if self.switch_timer >= 2:
+                    self.switch_timer = 0
+                    self.switching2 = False
+                    self.player.can_move = True
+                    self.not_switching = False
+
             # Обновления камеры
-            cam_x, cam_y = self.world_camera.position
-            dz_left = cam_x - DEAD_ZONE_W // 2
-            dz_right = cam_x + DEAD_ZONE_W // 2
-            dz_bottom = cam_y - DEAD_ZONE_H // 2
-            dz_top = cam_y + DEAD_ZONE_H // 2
+            if not self.respawning:
+                cam_x, cam_y = self.world_camera.position
+                dz_left = cam_x - DEAD_ZONE_W // 2
+                dz_right = cam_x + DEAD_ZONE_W // 2
+                dz_bottom = cam_y - DEAD_ZONE_H // 2
+                dz_top = cam_y + DEAD_ZONE_H // 2
 
-            px, py = self.player.center_x, self.player.center_y
-            target_x, target_y = cam_x, cam_y
+                px, py = self.player.center_x, self.player.center_y
+                target_x, target_y = cam_x, cam_y
 
-            if px < dz_left:
-                target_x = px + DEAD_ZONE_W // 2
-            elif px > dz_right:
-                target_x = px - DEAD_ZONE_W // 2
-            if py < dz_bottom:
-                target_y = py + DEAD_ZONE_H // 2
-            elif py > dz_top:
-                target_y = py - DEAD_ZONE_H // 2
+                if px < dz_left:
+                    target_x = px + DEAD_ZONE_W // 2
+                elif px > dz_right:
+                    target_x = px - DEAD_ZONE_W // 2
+                if py < dz_bottom:
+                    target_y = py + DEAD_ZONE_H // 2
+                elif py > dz_top:
+                    target_y = py - DEAD_ZONE_H // 2
 
-            half_w = self.world_camera.viewport_width / 2
-            half_h = self.world_camera.viewport_height / 2
-            target_x = max(half_w, min(self.world_width - half_w, target_x))
-            target_y = max(half_h, min(self.world_height - half_h, target_y))
+                half_w = self.world_camera.viewport_width / 2
+                half_h = self.world_camera.viewport_height / 2
+                target_x = max(half_w, min(self.world_width - half_w, target_x))
+                target_y = max(half_h, min(self.world_height - half_h, target_y))
 
-            smooth_x = (1 - CAMERA_SMOOTHNESS) * cam_x + CAMERA_SMOOTHNESS * target_x
-            smooth_y = (1 - CAMERA_SMOOTHNESS) * cam_y + CAMERA_SMOOTHNESS * target_y
-            self.cam_target = (smooth_x, smooth_y)
+                smooth_x = (1 - CAMERA_SMOOTHNESS) * cam_x + CAMERA_SMOOTHNESS * target_x
+                smooth_y = (1 - CAMERA_SMOOTHNESS) * cam_y + CAMERA_SMOOTHNESS * target_y
+                self.cam_target = (smooth_x, smooth_y)
 
-            self.world_camera.position = (self.cam_target[0], self.cam_target[1])
+                self.world_camera.position = (self.cam_target[0], self.cam_target[1])
 
-            # Параллакс
-            self.new_cam_pos_x, self.new_cam_pos_y = self.world_camera.position
-            if self.old_cam_pos_x != self.new_cam_pos_x:
-                self.bg.center_x += (self.new_cam_pos_x - self.old_cam_pos_x) * PARALLAX_SPEED
-            if self.old_cam_pos_y != self.new_cam_pos_y:
-                self.bg.center_y += (self.new_cam_pos_y - self.old_cam_pos_y) * PARALLAX_SPEED
-            self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
+                # Параллакс
+                self.new_cam_pos_x, self.new_cam_pos_y = self.world_camera.position
+                if self.old_cam_pos_x != self.new_cam_pos_x:
+                    self.bg.center_x += (self.new_cam_pos_x - self.old_cam_pos_x) * PARALLAX_SPEED
+                if self.old_cam_pos_y != self.new_cam_pos_y:
+                    self.bg.center_y += (self.new_cam_pos_y - self.old_cam_pos_y) * PARALLAX_SPEED
+                self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
 
             # Коллизия
             if self.map == 0:
                 hit_list = arcade.check_for_collision_with_list(self.player, self.tutorial["Dangers"])
-                if hit_list:
-                    # Ресет рывка
-                    self.engine.gravity_constant = GRAVITY
-                    self.player.dash_timer = 0
-                    self.player.dash_reset_timer = 0
-                    self.player.DASHING = False
+                if hit_list or self.respawning:
+                    self.player.can_move = False
+                    self.respawning = True
+                    self.respawn_timer += dt
+                    if self.respawn_timer >= 0.33:
+                        # Ресет рывка
+                        self.engine.gravity_constant = GRAVITY
+                        self.player.dash_timer = 0
+                        self.player.dash_reset_timer = 0
+                        self.player.DASHING = False
 
-                    # Ресет позиции
-                    self.player.center_x = self.last_checkpoint[0]
-                    self.player.center_y = self.last_checkpoint[1]
+                        # Ресет позиции
+                        self.player.center_x = self.last_checkpoint[0]
+                        self.player.center_y = self.last_checkpoint[1]
+
+                        self.respawning = False
+                        self.respawn_timer = 0
+                        self.player.can_move = True
 
                 # Коллизия с чекпоинтами
                 hit_list = arcade.check_for_collision_with_list(self.player, self.tutorial["Checkpoints"])
@@ -258,16 +327,24 @@ class Game(arcade.Window):
 
             if self.map == 1:
                 hit_list = arcade.check_for_collision_with_list(self.player, self.location1["Dangers"])
-                if hit_list:
-                    # Ресет рывка
-                    self.engine.gravity_constant = GRAVITY
-                    self.player.dash_timer = 0
-                    self.player.dash_reset_timer = 0
-                    self.player.DASHING = False
+                if hit_list or self.respawning:
+                    self.player.can_move = False
+                    self.respawning = True
+                    self.respawn_timer += dt
+                    if self.respawn_timer >= 0.5:
+                        # Ресет рывка
+                        self.engine.gravity_constant = GRAVITY
+                        self.player.dash_timer = 0
+                        self.player.dash_reset_timer = 0
+                        self.player.DASHING = False
 
-                    # Ресет позиции
-                    self.player.center_x = self.last_checkpoint[0]
-                    self.player.center_y = self.last_checkpoint[1]
+                        # Ресет позиции
+                        self.player.center_x = self.last_checkpoint[0]
+                        self.player.center_y = self.last_checkpoint[1]
+
+                        self.respawning = False
+                        self.respawn_timer = 0
+                        self.player.can_move = True
 
                 # Коллизия с чекпоинтами
                 hit_list = arcade.check_for_collision_with_list(self.player, self.location1["Checkpoints"])
@@ -282,22 +359,74 @@ class Game(arcade.Window):
                         self.useless_counter = 1
                         self.dash_help = True
 
+            if self.map == 2:
+                hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Dangers"])
+                if hit_list or self.respawning:
+                    self.player.can_move = False
+                    self.respawning = True
+                    self.respawn_timer += dt
+                    if self.respawn_timer >= 0.5:
+                        # Ресет рывка
+                        self.engine.gravity_constant = GRAVITY
+                        self.player.dash_timer = 0
+                        self.player.dash_reset_timer = 0
+                        self.player.DASHING = False
+
+                        # Ресет позиции
+                        self.player.center_x = self.last_checkpoint[0]
+                        self.player.center_y = self.last_checkpoint[1]
+
+                        self.respawning = False
+                        self.respawn_timer = 0
+                        self.player.can_move = True
+
+                # Коллизия с чекпоинтами
+                hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Checkpoints"])
+                if hit_list:
+                    self.last_checkpoint = [self.player.center_x, self.player.center_y]
+
+                # Собранные ключи
+                hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Keys1"])
+                if hit_list and not self.keys1:
+                    self.amount += 1
+                    self.keys1 = True
+                hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Keys2"])
+                if hit_list and not self.keys2:
+                    self.amount += 1
+                    self.keys2 = True
+                hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Keys3"])
+                if hit_list and not self.keys3:
+                    self.amount += 1
+                    self.keys3 = True
+                hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Keys4"])
+                if hit_list and not self.keys4:
+                    self.amount += 1
+                    self.keys4 = True
+
             # Движение влево-вправо
             self.player.movement = 0
 
             if not self.player.DASHING:
                 if arcade.key.A in self.keys:
                     self.player.movement += -self.player.speed
+                    self.player.WALKING = True
                 if arcade.key.D in self.keys:
                     self.player.movement += self.player.speed
+                    self.player.WALKING = True
 
             self.player.update(dt)
             # Обновление текстуры игрока
             self.player_texture.center_x = self.player.center_x
             self.player_texture.center_y = self.player.center_y
+            self.player.WALKING = False
 
             # Прыжок игрока
             grounded = self.engine.can_jump(y_distance=6)
+
+            if not self.old_grounded and grounded and self.time_since_ground >= (40 / 60):
+                arcade.play_sound(self.fall, volume=.1, speed=1.5)
+            self.old_grounded = grounded
+
             if grounded:
                 self.time_since_ground = 0
                 self.jumps_left = MAX_JUMPS
@@ -321,6 +450,8 @@ class Game(arcade.Window):
                     self.engine.jump(0)
                     self.player.DASHING = True
                     self.engine.gravity_constant = 0
+                    if self.player.dash_timer == 0:
+                        arcade.play_sound(self.dash, volume=.5, speed=1.25)
                     if self.player.dash_timer < DASH_TIME:
                         self.player.dash(dt)
                     else:
@@ -328,6 +459,11 @@ class Game(arcade.Window):
                         self.player.dash_timer = 0
                         self.player.dash_reset_timer = 0
                         self.player.DASHING = False
+
+            # Если все ключи собраны
+            if self.keys1 and self.keys2 and self.keys3 and self.keys4 and self.uselessc2:
+                self.uselessc2 = False
+                self.location2["Doors"].move(320, 0)
 
             # Обновление физики
             self.engine.update()
