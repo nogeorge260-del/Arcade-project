@@ -224,7 +224,6 @@ class Game(arcade.Window):
     def on_update(self, dt: float):
         if self.starting:
             self.starting_timer += dt
-        print(self.player.direction)
 
         if self.started and not self.waiting:
             # Закрытие двери
