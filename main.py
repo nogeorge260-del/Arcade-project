@@ -105,11 +105,19 @@ class Game(arcade.Window):
         self.kitty_spritelist.append(self.kitty)
 
         # Фон
-        self.bg = arcade.Sprite("Sprites/background placeholder.jpg", scale=2)
-        self.bg.center_x = 1024
-        self.bg.center_y = 768
+        self.bg = arcade.Sprite("Sprites/sprites/crystal_bg.png", scale=50)
+        self.bg.center_x = 1512
+        self.bg.center_y = 800
         self.bg_spritelist = arcade.SpriteList()
         self.bg_spritelist.append(self.bg)
+
+        # Animation
+        self.goleft = arcade.Sprite("Sprites/sprites/walking_cat_Left1.png", scale=3.25)
+        self.goright = arcade.Sprite("Sprites/sprites/walking_cat_Right1.png", scale=3.25)
+        self.left_list = arcade.SpriteList()
+        self.left_list.append(self.goleft)
+        self.right_list = arcade.SpriteList()
+        self.right_list.append(self.goright)
 
         # UI
         self.manager = UIManager()
@@ -158,7 +166,13 @@ class Game(arcade.Window):
 
             self.world_camera.use()
             if not self.respawning:
-                self.player_spritelist.draw()
+                if not self.player.WALKING:
+                    self.player_spritelist.draw()
+                else:
+                    if self.player.direction == 'right':
+                        self.right_list.draw()
+                    else:
+                        self.left_list.draw()
             if self.map == 0:
                 self.tutorial["Deco"].draw()
             elif self.map == 1:
@@ -210,6 +224,7 @@ class Game(arcade.Window):
     def on_update(self, dt: float):
         if self.starting:
             self.starting_timer += dt
+        print(self.player.direction)
 
         if self.started and not self.waiting:
             # Закрытие двери
@@ -484,15 +499,22 @@ class Game(arcade.Window):
                 if arcade.key.A in self.keys:
                     self.player.movement += -self.player.speed
                     self.player.WALKING = True
+                else:
+                    self.player.WALKING = False
                 if arcade.key.D in self.keys:
                     self.player.movement += self.player.speed
                     self.player.WALKING = True
+                else:
+                    self.player.WALKING = False
 
             self.player.update(dt)
             # Обновление текстуры игрока
             self.player_texture.center_x = self.player.center_x
             self.player_texture.center_y = self.player.center_y
-            self.player.WALKING = False
+            self.goleft.center_x = self.player.center_x
+            self.goleft.center_y = self.player.center_y
+            self.goright.center_x = self.player.center_x
+            self.goright.center_y = self.player.center_y
 
             # Прыжок игрока
             grounded = self.engine.can_jump(y_distance=6)
