@@ -20,8 +20,8 @@ LADDER_SPEED = 12.5     # Скрость лазание по лестницам
 
 PARALLAX_SPEED = 0.7     # Скорость параллакса
 
-DASH_SPEED = 36.9
-DASH_TIME = 9 / 60
+DASH_SPEED = 36.9     # Скорость ускорения
+DASH_TIME = 9 / 60     # Время ускорения
 DASH_RESET_TIME = 20 / 60
 
 

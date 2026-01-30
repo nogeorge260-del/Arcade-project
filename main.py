@@ -290,6 +290,7 @@ class Game(arcade.Window):
                     self.player.can_move = True
                     self.not_switching = False
 
+
             # Смена 2 локации на final
             if (self.player.center_y >= 3328 and self.map == 2) or self.switching3:
                 self.player.can_move = False
@@ -317,6 +318,7 @@ class Game(arcade.Window):
                     self.switching3 = False
                     self.player.can_move = True
                     self.not_switching = False
+
 
             # Обновления камеры
             if not self.respawning:
@@ -357,6 +359,7 @@ class Game(arcade.Window):
                     self.bg.center_y += (self.new_cam_pos_y - self.old_cam_pos_y) * PARALLAX_SPEED
                 self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
 
+
             # Коллизия
             if self.map == 0:
                 hit_list = arcade.check_for_collision_with_list(self.player, self.tutorial["Dangers"])
@@ -378,6 +381,7 @@ class Game(arcade.Window):
                         self.respawning = False
                         self.respawn_timer = 0
                         self.player.can_move = True
+
 
                 # Коллизия с чекпоинтами
                 hit_list = arcade.check_for_collision_with_list(self.player, self.tutorial["Checkpoints"])
@@ -438,6 +442,7 @@ class Game(arcade.Window):
                         self.respawning = False
                         self.respawn_timer = 0
                         self.player.can_move = True
+
 
                 # Коллизия с чекпоинтами
                 hit_list = arcade.check_for_collision_with_list(self.player, self.location2["Checkpoints"])
@@ -513,7 +518,7 @@ class Game(arcade.Window):
                     self.engine.jump(JUMP_SPEED)
                     self.jump_buffer_timer = 0
 
-            # Рывок
+            # Рывок (dash)
             if self.player.can_dash:
                 if (arcade.MOUSE_BUTTON_RIGHT in self.keys or self.player.DASHING) and self.player.dash_reset_timer > (DASH_RESET_TIME):
                     self.engine.jump(0)

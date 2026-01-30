@@ -12,7 +12,7 @@ class Player(arcade.Sprite):
         hitbox = arcade.load_texture("Sprites/player_hitbox.png")
         self.texture = hitbox
 
-        # Расположение игрока
+        # Расположение игрока по x, y
         self.center_x = PLAYER_START_X
         self.center_y = PLAYER_START_Y
         self.direction = 'right'
