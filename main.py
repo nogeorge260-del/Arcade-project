@@ -1,5 +1,4 @@
 import arcade
-from arcade.gl import RGBA_INTEGER
 from arcade.gui import UIManager, UIFlatButton, UILabel
 from arcade.gui.widgets.layout import UIAnchorLayout, UIBoxLayout
 
@@ -168,11 +167,10 @@ class Game(arcade.Window):
             if not self.respawning:
                 if not self.player.WALKING:
                     self.player_spritelist.draw()
-                else:
-                    if self.player.direction == 'right':
-                        self.right_list.draw()
-                    else:
-                        self.left_list.draw()
+                elif self.player.direction == 'right':
+                    self.right_list.draw()
+                elif self.player.direction == 'left':
+                    self.left_list.draw()
             if self.map == 0:
                 self.tutorial["Deco"].draw()
             elif self.map == 1:
@@ -374,6 +372,7 @@ class Game(arcade.Window):
                 self.old_cam_pos_x, self.old_cam_pos_y = self.world_camera.position
 
 
+            # print(self.player.direction)
             # Коллизия
             if self.map == 0:
                 hit_list = arcade.check_for_collision_with_list(self.player, self.tutorial["Dangers"])
@@ -520,6 +519,7 @@ class Game(arcade.Window):
 
             if not self.old_grounded and grounded and self.time_since_ground >= (40 / 60):
                 arcade.play_sound(self.fall, volume=.1, speed=1.5)
+                pass
             self.old_grounded = grounded
 
             if grounded:
@@ -547,6 +547,7 @@ class Game(arcade.Window):
                     self.engine.gravity_constant = 0
                     if self.player.dash_timer == 0:
                         arcade.play_sound(self.dash, volume=.5, speed=1.25)
+                        pass
                     if self.player.dash_timer < DASH_TIME:
                         self.player.dash(dt)
                     else:

@@ -45,13 +45,13 @@ class Player(arcade.Sprite):
             # В какую сторону смотрит
             if self.movement > 0:
                 self.direction = 'right'
-            elif self.movement <= 0:
+            elif self.movement < 0:
                 self.direction = 'left'
 
-            if not self.old_walking and self.WALKING:
-                self.walking_sfx = self.walking.play(volume=3, speed=1.12, loop=True)
-            elif self.old_walking and not self.WALKING:
-                arcade.stop_sound(self.walking_sfx)
+            #if not self.old_walking and self.WALKING:
+                #self.walking_sfx = self.walking.play(volume=3, speed=1.12, loop=True)
+            #elif self.old_walking and not self.WALKING:
+                #arcade.stop_sound(self.walking_sfx)
 
             self.old_walking = self.WALKING
 
